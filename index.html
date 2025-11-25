@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sten Saks Papir Online</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; margin-top: 50px; }
+        button { padding: 10px 20px; font-size: 18px; cursor: pointer; margin: 5px; }
+        #status { margin-bottom: 20px; color: #333; font-weight: bold; }
+        #result { margin-top: 20px; font-size: 24px; color: green; }
+        #score { margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+
+    <h1>Sten, Saks, Papir</h1>
+    <div id="score">Venter på scores...</div>
+    <div id="status">Forbinder...</div>
+
+    <div id="game-area">
+        <button onclick="sendMove('sten')">🪨 Sten</button>
+        <button onclick="sendMove('saks')">✂️ Saks</button>
+        <button onclick="sendMove('papir')">📄 Papir</button>
+    </div>
+
+    <div id="result"></div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const statusDiv = document.getElementById('status');
+        const resultDiv = document.getElementById('result');
+        const scoreDiv = document.getElementById('score');
+
+        socket.on('status', (msg) => {
+            statusDiv.innerText = msg;
+            setTimeout(() => {
+                if (statusDiv.innerText === msg) {
+                    statusDiv.innerText = '';
+                }
+            }, 5000); 
+        });
+
+        socket.on('result', (msg) => {
+            resultDiv.innerText = msg;
+        });
+        
+        socket.on('game-over', (msg) => {
+            resultDiv.innerText = msg;
+            alert(msg);
+        });
+
+        socket.on('scores', (currentPlayers) => {
+            if (!currentPlayers) {
+                scoreDiv.innerHTML = '<h2>Score</h2>Venter på scores...';
+                return;
+            }
+            
+            let scoreText = "";
+            const currentSocketId = socket.id;
+            
+            for (const id in currentPlayers) {
+                const player = currentPlayers[id];
+                const isLocal = (id === currentSocketId) ? " (Dig)" : ""; 
+                
+                scoreText += `${player.name}${isLocal}: ${player.score} point | `;
+            }
+            scoreDiv.innerHTML = '<h2>Score</h2>' + scoreText;
+        });
+
+        function sendMove(move) {
+            socket.emit('make-move', move);
+            resultDiv.innerText = "";
+        }
+    </script>
+</body>
+</html>
